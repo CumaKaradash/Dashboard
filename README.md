@@ -1,53 +1,48 @@
-# Dashboard
+# BizFlow
 
-Bu proje, kullanıcıların veri görselleştirmeleri ve temel yönetim işlemleri gerçekleştirebileceği bir Dashboard uygulamasıdır.
+## Kullanıcı Kılavuzu
 
-## Özellikler
+- Sisteme giriş yaptıktan sonra sol menüden modüllere erişebilirsiniz.
+- Ödeme, fatura, bütçe, hasta, ürün, seans ve vardiya işlemlerini kolayca yönetebilirsiniz.
+- Yeni kayıt eklemek için ilgili modülde "Ekle" butonunu kullanın.
+- Kayıtları silmek için listede çöp kutusu ikonuna tıklayın.
+- Formlarda zorunlu alanları doldurun, hatalı girişlerde sistem sizi uyarır.
+- Tüm sayfalar mobil ve masaüstü uyumludur.
 
-- Modern ve kullanıcı dostu arayüz
-- Veri görselleştirme (grafikler, tablolar)
-- Yönetim paneli
-- Kolay entegrasyon ve genişletilebilir yapı
+## Geliştirici Kılavuzu
 
-## Kurulum
-
-1. Bu projeyi klonlayın:
-   ```bash
-   git clone https://github.com/CumaKaradash/Dashboard.git
+### Kurulum
+1. Bağımlılıkları yükleyin:
+   ```
+   pnpm install
+   ```
+2. Geliştirme sunucusunu başlatın:
+   ```
+   pnpm run dev
    ```
 
-2. Proje dizinine gidin:
-   ```bash
-   cd Dashboard
-   ```
+### Build ve Deploy
+- Build almak için:
+  ```
+  pnpm run build
+  ```
+- Netlify için publish directory: `.next`
+- Çevre değişkenlerini Netlify panelinden tanımlayın (varsa).
 
-3. Gerekli bağımlılıkları yükleyin:
-   ```bash
-   npm install
-   ```
-   veya
-   ```bash
-   yarn install
-   ```
+### API Entegrasyonu
+- Tüm veri işlemleri `/app/api` altında tanımlı endpointler üzerinden yapılır.
+- Yeni modül eklemek için ilgili API route ve frontend fetch işlemlerini ekleyin.
 
-4. Uygulamayı başlatın:
-   ```bash
-   npm start
-   ```
-   veya
-   ```bash
-   yarn start
-   ```
+### Test
+- Tüm sayfaları ve formları localde ve canlıda test edin.
+- Otomatik test altyapısı için Jest ve React Testing Library önerilir.
 
-## Kullanım
+## UI/UX & Erişilebilirlik Checklist
 
-- Uygulamayı başlattıktan sonra, tarayıcınızda `http://localhost:3000` adresine giderek Dashboard'a erişebilirsiniz.
-- Yönetim panelinden veri ekleyebilir, silebilir ve güncelleyebilirsiniz.
-
-## Katkıda Bulunma
-
-Katkılarınızı memnuniyetle karşılıyoruz! Lütfen önce bir issue açarak değiştirmek istediğiniz konuyu belirtin ve ardından bir pull request gönderin.
-
-## Lisans
-
-Bu proje MIT lisansı ile lisanslanmıştır.
+- [ ] Tüm formlar ve butonlar klavye ile erişilebilir.
+- [ ] Renk kontrastı ve okunabilirlik yüksek.
+- [ ] Mobil ve masaüstü uyumluluk test edildi.
+- [ ] Loading, hata ve başarı mesajları tutarlı.
+- [ ] Tema/dark mode tüm sayfalarda çalışıyor.
+- [ ] Formlarda validasyon ve hata mesajları var.
+- [ ] Erişim kontrolleri ve yetkilendirme aktif.

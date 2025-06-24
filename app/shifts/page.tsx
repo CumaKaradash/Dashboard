@@ -18,7 +18,8 @@ export default function ShiftsPage() {
   const [selectedDate, setSelectedDate] = useState("2024-01-15")
   const [shifts, setShifts] = useState<Shift[]>([])
   const [showForm, setShowForm] = useState(false)
-  const [editingShift, setEditingShift] = useState<Shift | undefined>()
+  const [editingShift, setEditingShift] = useState<Shift | null>(null)
+  const [loading, setLoading] = useState(true)
   const searchParams = useSearchParams()
 
   useEffect(() => {
@@ -28,9 +29,15 @@ export default function ShiftsPage() {
     }
   }, [searchParams])
 
-  const loadShifts = () => {
-    const allShifts = DatabaseOperations.shifts.getAll()
-    setShifts(allShifts)
+  const loadShifts = async () => {
+    setLoading(true)
+    try {
+      const res = await fetch("/api/shifts")
+      const data = await res.json()
+      setShifts(data)
+    } finally {
+      setLoading(false)
+    }
   }
 
   const getStatusBadge = (status: string) => {
@@ -67,27 +74,38 @@ export default function ShiftsPage() {
     absent: shifts.filter((s) => s.status === "absent").length,
   }
 
-  const handleAddShift = () => {
-    setEditingShift(undefined)
+  const handleAdd = () => {
+    setEditingShift(null)
     setShowForm(true)
   }
 
-  const handleEditShift = (shift: Shift) => {
+  const handleEdit = (shift: Shift) => {
     setEditingShift(shift)
     setShowForm(true)
   }
 
-  const handleDeleteShift = (id: string) => {
-    DatabaseOperations.shifts.delete(id)
-    loadShifts()
+  const handleDelete = async (id: string) => {
+    if (confirm("Bu vardiyayı silmek istediğinizden emin misiniz?")) {
+      await fetch(`/api/shifts/${id}`, { method: "DELETE" })
+      loadShifts()
+    }
   }
 
-  const handleFormClose = () => {
+  const handleFormSubmit = async (shift: Shift) => {
+    if (editingShift) {
+      await fetch(`/api/shifts/${editingShift.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(shift),
+      })
+    } else {
+      await fetch("/api/shifts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(shift),
+      })
+    }
     setShowForm(false)
-    setEditingShift(undefined)
-  }
-
-  const handleShiftUpdated = () => {
     loadShifts()
   }
 
@@ -109,7 +127,7 @@ export default function ShiftsPage() {
               <Calendar className="w-4 h-4 mr-2" />
               Haftalık Görünüm
             </Button>
-            <Button size="sm" onClick={handleAddShift}>
+            <Button size="sm" onClick={handleAdd}>
               <Plus className="w-4 h-4 mr-2" />
               Yeni Vardiya
             </Button>
@@ -207,7 +225,7 @@ export default function ShiftsPage() {
                 <CardTitle>Hızlı İşlemler</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                <Button className="w-full justify-start" variant="outline" onClick={handleAddShift}>
+                <Button className="w-full justify-start" variant="outline" onClick={handleAdd}>
                   <Plus className="w-4 h-4 mr-2" />
                   Vardiya Ekle
                 </Button>
@@ -293,10 +311,10 @@ export default function ShiftsPage() {
                             <td className="p-4">{getStatusBadge(shift.status)}</td>
                             <td className="p-4">
                               <div className="flex items-center gap-2">
-                                <Button variant="outline" size="sm" onClick={() => handleEditShift(shift)}>
+                                <Button variant="outline" size="sm" onClick={() => handleEdit(shift)}>
                                   <Edit className="w-4 h-4" />
                                 </Button>
-                                <Button variant="outline" size="sm" onClick={() => handleDeleteShift(shift.id)}>
+                                <Button variant="outline" size="sm" onClick={() => handleDelete(shift.id)}>
                                   <Trash2 className="w-4 h-4" />
                                 </Button>
                               </div>
@@ -312,12 +330,16 @@ export default function ShiftsPage() {
           </div>
         </div>
       </div>
-      <Dialog open={showForm} onOpenChange={handleFormClose}>
+      <Dialog open={showForm} onOpenChange={setShowForm}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{editingShift ? "Vardiya Düzenle" : "Vardiya Ekle"}</DialogTitle>
+            <DialogTitle>{editingShift ? "Vardiya Düzenle" : "Yeni Vardiya Ekle"}</DialogTitle>
           </DialogHeader>
-          <ShiftForm shift={editingShift} onCancel={handleFormClose} onShiftUpdated={handleShiftUpdated} />
+          <ShiftForm
+            shift={editingShift ?? undefined}
+            onSubmit={(shift) => { handleFormSubmit(shift); setShowForm(false); }}
+            onCancel={() => setShowForm(false)}
+          />
         </DialogContent>
       </Dialog>
     </div>

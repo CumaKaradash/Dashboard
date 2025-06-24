@@ -10,6 +10,7 @@ import { Search, Plus, Clock, User, Calendar, Edit, Eye } from "lucide-react"
 import Link from "next/link"
 import { PsychologyDatabase, type Session, type Patient } from "@/lib/psychology-database"
 import { usePsychologyAuth } from "@/hooks/use-psychology-auth"
+import { SessionForm } from "@/components/forms/session-form"
 
 export default function SessionsPage() {
   const [searchTerm, setSearchTerm] = useState("")
@@ -19,15 +20,24 @@ export default function SessionsPage() {
   const [selectedSession, setSelectedSession] = useState<Session | null>(null)
   const [showDetails, setShowDetails] = useState(false)
   const { user, hasPermission } = usePsychologyAuth()
+  const [showForm, setShowForm] = useState(false)
+  const [editingSession, setEditingSession] = useState<Session | null>(null)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     loadSessions()
     loadPatients()
   }, [])
 
-  const loadSessions = () => {
-    const allSessions = PsychologyDatabase.sessions.getAll()
-    setSessions(allSessions)
+  const loadSessions = async () => {
+    setLoading(true)
+    try {
+      const res = await fetch("/api/sessions")
+      const data = await res.json()
+      setSessions(data)
+    } finally {
+      setLoading(false)
+    }
   }
 
   const loadPatients = () => {
@@ -91,13 +101,45 @@ export default function SessionsPage() {
     }
   }
 
-  const filteredSessions = sessions.filter((session) => {
-    const patientName = getPatientName(session.patientId).toLowerCase()
-    return (
-      patientName.includes(searchTerm.toLowerCase()) ||
-      session.psychologistId.toLowerCase().includes(searchTerm.toLowerCase())
-    )
-  })
+  const handleAdd = () => {
+    setEditingSession(null)
+    setShowForm(true)
+  }
+
+  const handleEdit = (session: Session) => {
+    setEditingSession(session)
+    setShowForm(true)
+  }
+
+  const handleDelete = async (id: string) => {
+    if (confirm("Bu seansı silmek istediğinizden emin misiniz?")) {
+      await fetch(`/api/sessions/${id}`, { method: "DELETE" })
+      loadSessions()
+    }
+  }
+
+  const handleFormSubmit = async (session: Session) => {
+    if (editingSession) {
+      await fetch(`/api/sessions/${editingSession.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(session),
+      })
+    } else {
+      await fetch("/api/sessions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(session),
+      })
+    }
+    setShowForm(false)
+    loadSessions()
+  }
+
+  const filteredSessions = sessions.filter((session) =>
+    session.patientId.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    session.psychologistId.toLowerCase().includes(searchTerm.toLowerCase())
+  )
 
   const todaySessions = sessions.filter((s) => s.date === selectedDate)
   const stats = {
@@ -135,7 +177,7 @@ export default function SessionsPage() {
           </div>
           <div className="flex items-center gap-3">
             {hasPermission("session_records") && (
-              <Button size="sm">
+              <Button size="sm" onClick={handleAdd}>
                 <Plus className="w-4 h-4 mr-2" />
                 Yeni Seans
               </Button>
@@ -273,7 +315,7 @@ export default function SessionsPage() {
                             </Button>
                             {hasPermission("session_records") && (
                               <>
-                                <Button variant="outline" size="sm" onClick={() => handleEditSession(session)}>
+                                <Button variant="outline" size="sm" onClick={() => handleEdit(session)}>
                                   <Edit className="w-4 h-4" />
                                 </Button>
                                 {session.status === "scheduled" && (
@@ -383,6 +425,19 @@ export default function SessionsPage() {
               )}
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showForm} onOpenChange={setShowForm}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{editingSession ? "Seans Düzenle" : "Yeni Seans Ekle"}</DialogTitle>
+          </DialogHeader>
+          <SessionForm
+            session={editingSession ?? undefined}
+            onSubmit={handleFormSubmit}
+            onCancel={() => setShowForm(false)}
+          />
         </DialogContent>
       </Dialog>
     </div>

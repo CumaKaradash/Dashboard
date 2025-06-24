@@ -14,18 +14,27 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 export default function PatientsPage() {
   const [searchTerm, setSearchTerm] = useState("")
-  const [patients, setPatients] = useState<Patient[]>([])
+  const [patients, setPatients] = useState([])
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null)
   const [showDetails, setShowDetails] = useState(false)
   const { user, hasPermission } = usePsychologyAuth()
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     loadPatients()
   }, [])
 
-  const loadPatients = () => {
-    const allPatients = PsychologyDatabase.patients.getAll()
-    setPatients(allPatients)
+  const loadPatients = async () => {
+    setLoading(true)
+    try {
+      const res = await fetch("/api/patients")
+      const data = await res.json()
+      setPatients(data)
+    } catch {
+      // hata yönetimi
+    } finally {
+      setLoading(false)
+    }
   }
 
   const handleViewPatient = (patient: Patient) => {
@@ -37,10 +46,18 @@ export default function PatientsPage() {
     alert(`Hasta düzenleme özelliği geliştiriliyor...\n\nHasta: ${patient.firstName} ${patient.lastName}`)
   }
 
-  const handleDeletePatient = (id: string) => {
-    if (confirm("Bu hastayı silmek istediğinizden emin misiniz?")) {
-      PsychologyDatabase.patients.delete(id)
-      loadPatients()
+  const handleDeletePatient = async (id: string) => {
+    if (confirm("Bu hasta kaydını silmek istediğinizden emin misiniz?")) {
+      try {
+        const res = await fetch(`/api/patients/${id}`, { method: "DELETE" })
+        if (res.ok) {
+          loadPatients()
+        } else {
+          // hata yönetimi
+        }
+      } catch {
+        // hata yönetimi
+      }
     }
   }
 

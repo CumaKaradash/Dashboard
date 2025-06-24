@@ -27,6 +27,7 @@ import Link from "next/link"
 import { FinanceDB, type Payment, type Invoice, type Budget } from "@/lib/finance-database"
 import { usePsychologyAuth } from "@/hooks/use-psychology-auth"
 import { useToast } from "@/hooks/use-toast"
+import BudgetForm from "@/components/forms/budget-form"
 
 export default function FinancePage() {
   const [searchTerm, setSearchTerm] = useState("")
@@ -36,6 +37,7 @@ export default function FinancePage() {
   const [budgets, setBudgets] = useState<Budget[]>([])
   const [showPaymentForm, setShowPaymentForm] = useState(false)
   const [showInvoiceForm, setShowInvoiceForm] = useState(false)
+  const [showBudgetForm, setShowBudgetForm] = useState(false)
   const [loading, setLoading] = useState(true)
   const { user, hasPermission } = usePsychologyAuth()
   const { toast } = useToast()
@@ -47,9 +49,15 @@ export default function FinancePage() {
   const loadFinanceData = async () => {
     setLoading(true)
     try {
-      const allPayments = FinanceDB.payments.getAll()
-      const allInvoices = FinanceDB.invoices.getAll()
-      const allBudgets = FinanceDB.budgets.getAll()
+      // Payments API'den çekiliyor
+      const paymentsRes = await fetch("/api/payments")
+      const allPayments = await paymentsRes.json()
+      // Invoices API'den çekiliyor
+      const invoicesRes = await fetch("/api/invoices")
+      const allInvoices = await invoicesRes.json()
+      // Budgets API'den çekiliyor
+      const budgetsRes = await fetch("/api/budgets")
+      const allBudgets = await budgetsRes.json()
       setPayments(allPayments)
       setInvoices(allInvoices)
       setBudgets(allBudgets)
@@ -87,6 +95,22 @@ export default function FinancePage() {
           description: "Ödeme kaydı silinirken bir hata oluştu",
           variant: "destructive",
         })
+      }
+    }
+  }
+
+  const handleDeleteBudget = async (id: string) => {
+    if (confirm("Bu bütçe kaydını silmek istediğinizden emin misiniz?")) {
+      try {
+        const res = await fetch(`/api/budgets/${id}`, { method: "DELETE" })
+        if (res.ok) {
+          loadFinanceData()
+          toast({ title: "Başarılı", description: "Bütçe kaydı silindi" })
+        } else {
+          toast({ title: "Hata", description: "Bütçe silinemedi", variant: "destructive" })
+        }
+      } catch {
+        toast({ title: "Hata", description: "Sunucu hatası", variant: "destructive" })
       }
     }
   }
@@ -157,6 +181,28 @@ export default function FinancePage() {
   const overdueInvoices = FinanceDB.calculations.getOverdueInvoices()
   const totalBudget = budgets.reduce((sum, b) => sum + b.budgetAmount, 0)
   const totalSpent = budgets.reduce((sum, b) => sum + b.spentAmount, 0)
+
+  const handleAddBudget = async (budgetData?: any) => {
+    setShowBudgetForm(true)
+    if (budgetData) {
+      try {
+        const res = await fetch("/api/budgets", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(budgetData),
+        })
+        if (res.ok) {
+          loadFinanceData()
+          toast({ title: "Başarılı", description: "Bütçe eklendi" })
+        } else {
+          toast({ title: "Hata", description: "Bütçe eklenemedi", variant: "destructive" })
+        }
+      } catch {
+        toast({ title: "Hata", description: "Sunucu hatası", variant: "destructive" })
+      }
+      setShowBudgetForm(false)
+    }
+  }
 
   if (!hasPermission("finance_management") && !hasPermission("finance_view")) {
     return (
@@ -670,6 +716,21 @@ export default function FinancePage() {
               <Button onClick={() => setShowInvoiceForm(false)}>Oluştur ve Gönder</Button>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Budget Form Dialog */}
+      <Dialog open={showBudgetForm} onOpenChange={setShowBudgetForm}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Yeni Bütçe Ekle</DialogTitle>
+          </DialogHeader>
+          <BudgetForm
+            onSubmit={async (data) => {
+              await handleAddBudget(data)
+            }}
+            onCancel={() => setShowBudgetForm(false)}
+          />
         </DialogContent>
       </Dialog>
     </div>

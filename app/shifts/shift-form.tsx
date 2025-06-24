@@ -11,11 +11,11 @@ import { DatabaseOperations, type Shift } from "@/lib/database"
 
 interface ShiftFormProps {
   shift?: Shift
+  onSubmit: (shift: Shift) => void
   onCancel: () => void
-  onShiftUpdated: () => void
 }
 
-export default function ShiftForm({ shift, onCancel, onShiftUpdated }: ShiftFormProps) {
+export default function ShiftForm({ shift, onSubmit, onCancel }: ShiftFormProps) {
   const [formData, setFormData] = useState({
     employeeName: shift?.employeeName || "",
     employeeId: shift?.employeeId || "",
@@ -88,8 +88,7 @@ export default function ShiftForm({ shift, onCancel, onShiftUpdated }: ShiftForm
       }
 
       if (result) {
-        onShiftUpdated()
-        onCancel()
+        onSubmit(result)
       }
     } catch (error) {
       console.error("Error saving shift:", error)
